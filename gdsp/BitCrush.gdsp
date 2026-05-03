@@ -1,0 +1,30 @@
+// @gdsp-name        BitCrush
+// @gdsp-category    Effect
+// @gdsp-description Sample-rate and bit-depth reducer
+// @gdsp-color       #c8e85a
+// @gdsp-input       in    audio
+// @gdsp-input       bits  param  8
+// @gdsp-input       rate  param  0.5
+// @gdsp-output      out   audio
+// @gdsp-method      bits  setBits
+// @gdsp-header      cmath
+
+class BitCrush {
+    float phase = 0.f;
+    float held  = 0.f;
+    float rate_ = 0.5f;
+    int   bits_ = 8;
+public:
+    void rate(float v)    { rate_ = v; }
+    void setBits(float v) { bits_ = (int)v; }
+
+    float operator()(float in) {
+        phase += rate_;
+        if (phase >= 1.f) {
+            phase -= 1.f;
+            float step = float(1 << bits_);
+            held = floorf(in * step) / step;
+        }
+        return held;
+    }
+};

@@ -1,0 +1,54 @@
+name: Validate .gdsp
+
+on:
+  pull_request:
+    paths: ["gdsp/**", "scripts/**", ".github/workflows/validate.yml"]
+  push:
+    branches: [main]
+    paths: ["gdsp/**", "scripts/**", ".github/workflows/validate.yml"]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Discover .gdsp files
+        id: discover
+        run: |
+          shopt -s nullglob
+          files=(gdsp/*.gdsp)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .gdsp files yet — nothing to validate."
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Found ${#files[@]} file(s):"
+          printf '  %s\n' "${files[@]}"
+          echo "any=true" >> "$GITHUB_OUTPUT"
+      - name: Parse + structure check
+        if: steps.discover.outputs.any == 'true'
+        run: node scripts/validate.js gdsp/*.gdsp
+      - name: Lint conventions
+        if: steps.discover.outputs.any == 'true'
+        run: node scripts/lint.js gdsp/*.gdsp
+
+  # Placeholder for the future Emscripten compile-check. Disabled by
+  # default because it requires building Gamma + ~1 GB of toolchain.
+  # Enable by setting the COMPILE_CHECK repo variable to "1".
+  compile-check:
+    if: vars.COMPILE_CHECK == '1'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+      - name: Clone Gamma
+        run: git clone --depth 1 https://github.com/AlloSphere-Research-Group/Gamma.git external/Gamma
+      - name: Compile each .gdsp as a stub
+        run: node scripts/compile-check.js gdsp/*.gdsp
