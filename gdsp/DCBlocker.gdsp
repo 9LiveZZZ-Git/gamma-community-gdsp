@@ -1,0 +1,19 @@
+// @gdsp-name        DCBlocker
+// @gdsp-category    Filter
+// @gdsp-description One-pole DC blocker (~5 Hz cutoff at 48 kHz). Use after feedback chains.
+// @gdsp-color       #1d9e75
+// @gdsp-input       in  audio
+// @gdsp-output      out audio
+
+class DCBlocker {
+    float xPrev = 0.f;
+    float yPrev = 0.f;
+    static constexpr float R = 0.995f;
+public:
+    float operator()(float in) {
+        float y = in - xPrev + R * yPrev;
+        xPrev = in;
+        yPrev = y;
+        return y;
+    }
+};

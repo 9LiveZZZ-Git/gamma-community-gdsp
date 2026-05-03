@@ -1,0 +1,41 @@
+// @gdsp-name        SimpleChorus
+// @gdsp-category    Effect
+// @gdsp-description Single-tap chorus — delay time modulated by a slow LFO, mix blends dry / wet.
+// @gdsp-color       #e0793f
+// @gdsp-input       in    audio
+// @gdsp-input       rate  param 0.7
+// @gdsp-input       depth param 0.005
+// @gdsp-input       mix   param 0.5
+// @gdsp-output      out   audio
+// @gdsp-method      rate  setRate
+// @gdsp-method      depth setDepth
+// @gdsp-method      mix   setMix
+// @gdsp-header      Gamma/Delay.h
+// @gdsp-header      cmath
+
+class SimpleChorus {
+    gam::Delay<> dl;
+    float phase = 0.f;
+    float rate_  = 0.7f;
+    float depth_ = 0.005f;
+    float base_  = 0.012f;
+    float mix_   = 0.5f;
+    static constexpr float SR = 48000.f;
+public:
+    SimpleChorus() {
+        dl.maxDelay(0.05f);
+        dl.delay(base_);
+    }
+    void setRate(float v)  { rate_  = v; }
+    void setDepth(float v) { depth_ = v; }
+    void setMix(float v)   { mix_   = v < 0.f ? 0.f : (v > 1.f ? 1.f : v); }
+
+    float operator()(float in) {
+        phase += rate_ / SR;
+        if (phase >= 1.f) phase -= 1.f;
+        float lfo = sinf(6.2831853f * phase);
+        dl.delay(base_ + depth_ * lfo);
+        float wet = dl(in);
+        return (1.f - mix_) * in + mix_ * wet;
+    }
+};

@@ -1,0 +1,29 @@
+// @gdsp-name        Slew
+// @gdsp-category    Convert
+// @gdsp-description Linear slew limiter — caps signal change at `rise`/`fall` units per second.
+// @gdsp-color       #6dc5b5
+// @gdsp-input       in   audio
+// @gdsp-input       rise param 100
+// @gdsp-input       fall param 100
+// @gdsp-output      out  audio
+// @gdsp-method      rise setRise
+// @gdsp-method      fall setFall
+
+class Slew {
+    float state = 0.f;
+    float rise_ = 100.f;
+    float fall_ = 100.f;
+    static constexpr float SR = 48000.f;
+public:
+    void setRise(float v) { rise_ = v < 0.f ? 0.f : v; }
+    void setFall(float v) { fall_ = v < 0.f ? 0.f : v; }
+
+    float operator()(float in) {
+        float diff = in - state;
+        float maxStep = (diff > 0.f ? rise_ : fall_) / SR;
+        if      (diff >  maxStep) state += maxStep;
+        else if (diff < -maxStep) state -= maxStep;
+        else                      state  = in;
+        return state;
+    }
+};

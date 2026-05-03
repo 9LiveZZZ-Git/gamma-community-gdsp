@@ -1,0 +1,46 @@
+// @gdsp-name        Compressor
+// @gdsp-category    Effect
+// @gdsp-description Feed-forward compressor — peak envelope, separate attack and release in seconds.
+// @gdsp-color       #d85a30
+// @gdsp-input       in        audio
+// @gdsp-input       threshold param -12
+// @gdsp-input       ratio     param 4
+// @gdsp-input       attack    param 0.01
+// @gdsp-input       release   param 0.1
+// @gdsp-output      out       audio
+// @gdsp-method      threshold setThreshold
+// @gdsp-method      ratio     setRatio
+// @gdsp-method      attack    setAttack
+// @gdsp-method      release   setRelease
+// @gdsp-header      cmath
+
+class Compressor {
+    float env_    = 0.f;
+    float thresh_ = -12.f;     // dB
+    float ratio_  = 4.f;
+    float aCoef_  = 0.99f;
+    float rCoef_  = 0.999f;
+    static constexpr float SR = 48000.f;
+
+    static float dbToLin(float db) { return powf(10.f, db / 20.f); }
+    static float linToDb(float a)  { return 20.f * log10f(a < 1e-9f ? 1e-9f : a); }
+public:
+    void setThreshold(float dB) { thresh_ = dB; }
+    void setRatio(float r)      { ratio_  = r < 1.f ? 1.f : r; }
+    void setAttack(float sec)   { aCoef_  = expf(-1.f / (sec * SR + 1.f)); }
+    void setRelease(float sec)  { rCoef_  = expf(-1.f / (sec * SR + 1.f)); }
+
+    float operator()(float in) {
+        float rect = fabsf(in);
+        // Fast-attack / slow-release peak follower.
+        if (rect > env_) env_ = aCoef_ * env_ + (1.f - aCoef_) * rect;
+        else             env_ = rCoef_ * env_ + (1.f - rCoef_) * rect;
+
+        float envDb     = linToDb(env_);
+        float overshoot = envDb - thresh_;
+        float gainDb    = overshoot > 0.f
+            ? -overshoot * (1.f - 1.f / ratio_)
+            : 0.f;
+        return in * dbToLin(gainDb);
+    }
+};

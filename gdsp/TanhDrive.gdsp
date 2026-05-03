@@ -1,0 +1,27 @@
+// @gdsp-name        TanhDrive
+// @gdsp-category    Effect
+// @gdsp-description Pre-gain + tanh saturation. drive scales the input, wet blends in/out.
+// @gdsp-color       #d85a30
+// @gdsp-input       in    audio
+// @gdsp-input       drive param 2.0
+// @gdsp-input       wet   param 1.0
+// @gdsp-output      out   audio
+// @gdsp-method      drive setDrive
+// @gdsp-method      wet   setWet
+// @gdsp-header      cmath
+
+class TanhDrive {
+    float drive_ = 2.f;
+    float wet_   = 1.f;
+public:
+    void setDrive(float v) { drive_ = v; }
+    void setWet(float v)   { wet_   = v < 0.f ? 0.f : (v > 1.f ? 1.f : v); }
+
+    float operator()(float in) {
+        float driven = tanhf(in * drive_);
+        // Normalize so peak hits ~1.0 at high drive.
+        float norm   = drive_ < 1.f ? 1.f : tanhf(drive_);
+        float wet    = driven / norm;
+        return wet_ * wet + (1.f - wet_) * in;
+    }
+};

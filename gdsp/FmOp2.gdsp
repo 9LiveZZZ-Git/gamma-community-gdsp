@@ -1,0 +1,38 @@
+// @gdsp-name        FmOp2
+// @gdsp-category    Oscillator
+// @gdsp-description 2-operator FM — sine carrier modulated by a sine, with adjustable ratio + index.
+// @gdsp-color       #7f77dd
+// @gdsp-input       freq  param 220
+// @gdsp-input       ratio param 1.5
+// @gdsp-input       index param 2.0
+// @gdsp-output      out   audio
+// @gdsp-method      freq  setFreq
+// @gdsp-method      ratio setRatio
+// @gdsp-method      index setIndex
+// @gdsp-header      cmath
+
+class FmOp2 {
+    float pCar  = 0.f;
+    float pMod  = 0.f;
+    float freq_ = 220.f;
+    float ratio_ = 1.5f;
+    float index_ = 2.f;
+    static constexpr float SR  = 48000.f;
+    static constexpr float TAU = 6.2831853f;
+public:
+    void setFreq(float v)  { freq_  = v; }
+    void setRatio(float v) { ratio_ = v; }
+    void setIndex(float v) { index_ = v; }
+
+    // No audio input — codegen calls operator()(); this is a source.
+    float operator()() {
+        float modOut = sinf(pMod);
+        pMod += TAU * (freq_ * ratio_) / SR;
+        if (pMod > TAU) pMod -= TAU;
+        float carPhase = pCar + index_ * modOut;
+        float out = sinf(carPhase);
+        pCar += TAU * freq_ / SR;
+        if (pCar > TAU) pCar -= TAU;
+        return out;
+    }
+};

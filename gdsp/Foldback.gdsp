@@ -1,0 +1,26 @@
+// @gdsp-name        Foldback
+// @gdsp-category    Effect
+// @gdsp-description Wavefolder — input above threshold reflects back symmetrically.
+// @gdsp-color       #d85a30
+// @gdsp-input       in        audio
+// @gdsp-input       threshold param 0.7
+// @gdsp-output      out       audio
+// @gdsp-method      threshold setThreshold
+
+class Foldback {
+    float thresh = 0.7f;
+public:
+    void setThreshold(float v) { thresh = v < 1e-6f ? 1e-6f : v; }
+
+    float operator()(float in) {
+        float t = thresh;
+        float x = in;
+        // Reflect any value above +t back below it, symmetrically below -t.
+        // Cap iterations so a runaway input can't stall the audio thread.
+        for (int i = 0; i < 16 && (x > t || x < -t); ++i) {
+            if      (x >  t) x =  t - (x - t);
+            else if (x < -t) x = -t - (x + t);
+        }
+        return x;
+    }
+};

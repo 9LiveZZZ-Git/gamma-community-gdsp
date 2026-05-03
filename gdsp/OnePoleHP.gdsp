@@ -1,0 +1,30 @@
+// @gdsp-name        OnePoleHP
+// @gdsp-category    Filter
+// @gdsp-description One-pole high-pass — mirrors Gamma's OnePole (which is LP-only).
+// @gdsp-color       #1d9e75
+// @gdsp-input       in     audio
+// @gdsp-input       cutoff param 200
+// @gdsp-output      out    audio
+// @gdsp-method      cutoff setCutoff
+// @gdsp-header      cmath
+
+class OnePoleHP {
+    float xPrev = 0.f;
+    float yPrev = 0.f;
+    float alpha = 0.974f;  // ~200 Hz @ 48 kHz
+    static constexpr float SR = 48000.f;
+public:
+    void setCutoff(float hz) {
+        float a = expf(-6.2831853f * hz / SR);
+        if (a < 0.f) a = 0.f;
+        if (a > 0.99999f) a = 0.99999f;
+        alpha = a;
+    }
+
+    float operator()(float in) {
+        float y = alpha * (yPrev + in - xPrev);
+        xPrev = in;
+        yPrev = y;
+        return y;
+    }
+};

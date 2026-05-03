@@ -1,0 +1,26 @@
+// @gdsp-name        Glide
+// @gdsp-category    Convert
+// @gdsp-description Exponential param smoother — slews input toward target over `time` seconds.
+// @gdsp-color       #6dc5b5
+// @gdsp-input       in   audio
+// @gdsp-input       time param 0.1
+// @gdsp-output      out  audio
+// @gdsp-method      time setTime
+// @gdsp-header      cmath
+
+class Glide {
+    float state = 0.f;
+    float coef  = 0.9999f;
+    static constexpr float SR = 48000.f;
+public:
+    void setTime(float sec) {
+        // -3 dB time constant: y reaches ~63% of target in `sec`.
+        if (sec <= 0.f) { coef = 0.f; return; }
+        coef = expf(-1.f / (sec * SR));
+    }
+
+    float operator()(float in) {
+        state = coef * state + (1.f - coef) * in;
+        return state;
+    }
+};
